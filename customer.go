@@ -1,30 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
-
-type Customer struct {
-	ID          int    `json:"id"`
-	FirstName   string `json:"first_name"`
-	LastName    string `json:"last_nme"`
-	Email       string `json:"email"`
-	PhoneNumber string `json:"phone_number"`
-}
-
-func NewCustomer(firstName, lastName, email, phoneNumber string) *Customer {
-	return &Customer{
-		ID:          rand.Intn(100000),
-		FirstName:   firstName,
-		LastName:    lastName,
-		Email:       email,
-		PhoneNumber: phoneNumber,
-	}
-}
 
 func (s *APIServer) handleCustomer(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
@@ -44,12 +26,26 @@ func (s *APIServer) handleGetCustomer(w http.ResponseWriter, r *http.Request) er
 
 	fmt.Println(id)
 
-	account := NewAccount(1)
-	return WriteJSON(w, http.StatusOK, account)
+	customer := NewCustomer("d", "mr", "example@gmail.com", "+31 123456789")
+	return WriteJSON(w, http.StatusOK, customer)
 }
 
 func (s *APIServer) handleCreateCustomer(w http.ResponseWriter, r *http.Request) error {
-	customer := NewCustomer("d", "mr", "example@gmail.com", "+31 123456789")
+	createCustomerReq := &CreateCustomerRequest{}
+	if err := json.NewDecoder(r.Body).Decode(createCustomerReq); err != nil {
+		return err
+	}
+
+	customer := NewCustomer(
+		createCustomerReq.FirstName,
+		createCustomerReq.LastName,
+		createCustomerReq.Email,
+		createCustomerReq.PhoneNumber,
+	)
+
+	if err := s.store.CreateCustomer(customer); err != nil {
+		return err
+	}
 
 	return WriteJSON(w, http.StatusOK, customer)
 }

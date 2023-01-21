@@ -3,33 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"log"
 	"net/http"
-	"time"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
-
-type CreateAccountRequest struct {
-	CustomerID string `json:"customer_id"`
-}
-
-type Account struct {
-	ID         int       `json:"id"`
-	CustomerID int       `json:"customer_id"`
-	Number     int64     `json:"number"`
-	Balance    int64     `json:"balance"`
-	CreatedAt  time.Time `json:"created_at"`
-}
-
-func NewAccount(customer_id int) *Account {
-	return &Account{
-		ID:         rand.Intn(10000),
-		CustomerID: customer_id,
-		Number:     int64(rand.Intn(100000)),
-		CreatedAt:  time.Now().UTC(),
-	}
-}
 
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
@@ -45,21 +24,28 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	id := mux.Vars(r)["id"]
+	customer_id := mux.Vars(r)["id"]
 
-	fmt.Println(id)
+	ID, err := strconv.Atoi(customer_id)
 
-	account := NewAccount(1)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	account := NewAccount(ID)
 	return WriteJSON(w, http.StatusOK, account)
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	createAccountReq := CreateAccountRequest{}
-	if err := json.NewDecoder(r.Body).Decode(&createAccountReq); err != nil {
+	createAccountReq := &CreateAccountRequest{}
+	if err := json.NewDecoder(r.Body).Decode(createAccountReq); err != nil {
 		return err
 	}
 
-	account := NewAccount(1)
+	account := NewAccount(createAccountReq.CustomerID)
+	if err := s.store.CreateAccount(account); err != nil {
+		return err
+	}
 
 	return WriteJSON(w, http.StatusOK, account)
 }
