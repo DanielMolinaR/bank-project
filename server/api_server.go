@@ -2,8 +2,10 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/DanielMolinaR/bank-project/storage"
 	"github.com/gorilla/mux"
@@ -24,17 +26,16 @@ func NewApiServer(listenAdrr string, store storage.Storage) *APIServer {
 func (s APIServer) Run() {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/accounts", makeHTTPHandleFunc(s.handleGetAccounts))
-
-	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
-
-	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleAccount))
-
 	router.HandleFunc("/customers", makeHTTPHandleFunc(s.handleGetCustomers))
+	router.HandleFunc("/customer", makeHTTPHandleFunc(s.handleCreateCustomer))
+	router.HandleFunc("/customer/{id}", makeHTTPHandleFunc(s.handleCustomerById))
 
-	router.HandleFunc("/customer", makeHTTPHandleFunc(s.handleCustomer))
+	router.HandleFunc("/accounts", makeHTTPHandleFunc(s.handleGetAccounts))
+	router.HandleFunc("/customer-accounts/{id}", makeHTTPHandleFunc(s.handleGetAccountsFromCustomer))
+	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleCreateAccount))
+	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleAccountById))
 
-	router.HandleFunc("/customer/{id}", makeHTTPHandleFunc(s.handleCustomer))
+	router.HandleFunc("/transfer", makeHTTPHandleFunc(s.HandleTransfer))
 
 	log.Println("JSON Api Server running on port: ", s.listenAddr)
 
@@ -50,7 +51,7 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 type apiFunc func(http.ResponseWriter, *http.Request) error
 
 type apiError struct {
-	Error string
+	Error string `json:"error"`
 }
 
 // Decorates apiFunc so it looks like a HandleFunc function from gorilla mux
@@ -60,4 +61,16 @@ func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 			WriteJSON(w, http.StatusBadRequest, apiError{Error: err.Error()})
 		}
 	}
+}
+
+func getID(r *http.Request) (int, error) {
+	idStr := mux.Vars(r)["id"]
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		return id, fmt.Errorf("invalid id given %s", idStr)
+	}
+
+	return id, nil
 }

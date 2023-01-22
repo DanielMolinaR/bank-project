@@ -1,18 +1,19 @@
 package postgres_storage
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/DanielMolinaR/bank-project/model"
 )
 
 func (s *PostgresStore) CreateCustomerTable() error {
-	query := `CREATE TABLE IF NOT exists customer (
-		id 				serial primary key,
-		first_name   	varchar(50),
-		last_name    	varchar(50),
-		email      		varchar(50),
-		phone_number 	varchar(13)
+	query := `CREATE TABLE IF NOT EXISTS customer (
+		id 				SERIAL PRIMARY KEY,
+		first_name   	VARCHAR(50),
+		last_name    	VARCHAR(50),
+		email      		VARCHAR(50),
+		phone_number 	VARCHAR(13)
 	)`
 
 	_, err := s.db.Exec(query)
@@ -30,13 +31,7 @@ func (s *PostgresStore) GetCustomers() ([]*model.Customer, error) {
 
 	customers := []*model.Customer{}
 	for rows.Next() {
-		customer := new(model.Customer)
-		err := rows.Scan(
-			&customer.ID,
-			&customer.FirstName,
-			&customer.LastName,
-			&customer.Email,
-			&customer.PhoneNumber)
+		customer, err := ScanIntoCustomer(rows)
 
 		if err != nil {
 			return nil, err
@@ -49,7 +44,18 @@ func (s *PostgresStore) GetCustomers() ([]*model.Customer, error) {
 }
 
 func (s *PostgresStore) GetCustomerByID(id int) (*model.Customer, error) {
-	return nil, nil
+	query := "SELECT * FROM customer WHERE ID = $1"
+	rows, err := s.db.Query(query, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return ScanIntoCustomer(rows)
+	}
+
+	return nil, fmt.Errorf("customer %d not found", id)
 }
 
 func (s *PostgresStore) CreateCustomer(customer *model.Customer) error {
@@ -76,9 +82,25 @@ func (s *PostgresStore) CreateCustomer(customer *model.Customer) error {
 }
 
 func (s *PostgresStore) DeleteCustomer(id int) error {
-	return nil
+	query := "DELETE FROM customer WHERE id = $1"
+
+	_, err := s.db.Query(query, id)
+
+	return err
 }
 
 func (s *PostgresStore) UpdateCustomer(*model.Customer) error {
 	return nil
+}
+
+func ScanIntoCustomer(rows *sql.Rows) (*model.Customer, error) {
+	customer := &model.Customer{}
+	err := rows.Scan(
+		&customer.ID,
+		&customer.FirstName,
+		&customer.LastName,
+		&customer.Email,
+		&customer.PhoneNumber)
+
+	return customer, err
 }

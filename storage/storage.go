@@ -7,6 +7,7 @@ import (
 
 type Storage interface {
 	GetAccounts() ([]*model.Account, error)
+	GetAccountsFromCustomer(int) ([]*model.Account, error)
 	GetAccountByID(int) (*model.Account, error)
 	CreateAccount(*model.Account) error
 	DeleteAccount(int) error

@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/DanielMolinaR/bank-project/model"
-	"github.com/gorilla/mux"
 )
 
 type CreateCustomerRequest struct {
@@ -16,12 +15,10 @@ type CreateCustomerRequest struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
-func (s *APIServer) handleCustomer(w http.ResponseWriter, r *http.Request) error {
+func (s *APIServer) handleCustomerById(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
 		return s.handleGetCustomerByID(w, r)
-	case "POST":
-		return s.handleCreateCustomer(w, r)
 	case "DELETE":
 		return s.handleDeleteCustomer(w, r)
 	default:
@@ -40,11 +37,18 @@ func (s *APIServer) handleGetCustomers(w http.ResponseWriter, r *http.Request) e
 }
 
 func (s *APIServer) handleGetCustomerByID(w http.ResponseWriter, r *http.Request) error {
-	id := mux.Vars(r)["id"]
+	id, err := getID(r)
 
-	fmt.Println(id)
+	if err != nil {
+		return err
+	}
 
-	customer := model.NewCustomer("d", "mr", "example@gmail.com", "+31 123456789")
+	customer, err := s.store.GetCustomerByID(id)
+
+	if err != nil {
+		return err
+	}
+
 	return WriteJSON(w, http.StatusOK, customer)
 }
 
@@ -53,6 +57,7 @@ func (s *APIServer) handleCreateCustomer(w http.ResponseWriter, r *http.Request)
 	if err := json.NewDecoder(r.Body).Decode(createCustomerReq); err != nil {
 		return err
 	}
+	defer r.Body.Close()
 
 	customer := model.NewCustomer(
 		createCustomerReq.FirstName,
@@ -69,5 +74,15 @@ func (s *APIServer) handleCreateCustomer(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *APIServer) handleDeleteCustomer(w http.ResponseWriter, r *http.Request) error {
-	return nil
+	id, err := getID(r)
+
+	if err != nil {
+		return err
+	}
+
+	if err = s.store.DeleteCustomer(id); err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, map[string]int{"deleted": id})
 }
