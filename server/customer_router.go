@@ -1,17 +1,25 @@
-package main
+package server
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"github.com/DanielMolinaR/bank-project/model"
 	"github.com/gorilla/mux"
 )
+
+type CreateCustomerRequest struct {
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	Email       string `json:"email"`
+	PhoneNumber string `json:"phone_number"`
+}
 
 func (s *APIServer) handleCustomer(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
-		return s.handleGetCustomer(w, r)
+		return s.handleGetCustomerByID(w, r)
 	case "POST":
 		return s.handleCreateCustomer(w, r)
 	case "DELETE":
@@ -21,12 +29,22 @@ func (s *APIServer) handleCustomer(w http.ResponseWriter, r *http.Request) error
 	}
 }
 
-func (s *APIServer) handleGetCustomer(w http.ResponseWriter, r *http.Request) error {
+func (s *APIServer) handleGetCustomers(w http.ResponseWriter, r *http.Request) error {
+	customers, err := s.store.GetCustomers()
+
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, customers)
+}
+
+func (s *APIServer) handleGetCustomerByID(w http.ResponseWriter, r *http.Request) error {
 	id := mux.Vars(r)["id"]
 
 	fmt.Println(id)
 
-	customer := NewCustomer("d", "mr", "example@gmail.com", "+31 123456789")
+	customer := model.NewCustomer("d", "mr", "example@gmail.com", "+31 123456789")
 	return WriteJSON(w, http.StatusOK, customer)
 }
 
@@ -36,7 +54,7 @@ func (s *APIServer) handleCreateCustomer(w http.ResponseWriter, r *http.Request)
 		return err
 	}
 
-	customer := NewCustomer(
+	customer := model.NewCustomer(
 		createCustomerReq.FirstName,
 		createCustomerReq.LastName,
 		createCustomerReq.Email,

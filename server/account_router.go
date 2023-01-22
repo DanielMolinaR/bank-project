@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"encoding/json"
@@ -7,13 +7,18 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/DanielMolinaR/bank-project/model"
 	"github.com/gorilla/mux"
 )
+
+type CreateAccountRequest struct {
+	CustomerID int `json:"customer_id"`
+}
 
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
 	switch r.Method {
 	case "GET":
-		return s.handleGetAccount(w, r)
+		return s.handleGetAccountByID(w, r)
 	case "POST":
 		return s.handleCreateAccount(w, r)
 	case "DELETE":
@@ -23,7 +28,17 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 	}
 }
 
-func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+func (s *APIServer) handleGetAccounts(w http.ResponseWriter, r *http.Request) error {
+	accounts, err := s.store.GetAccounts()
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return WriteJSON(w, http.StatusOK, accounts)
+}
+
+func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
 	customer_id := mux.Vars(r)["id"]
 
 	ID, err := strconv.Atoi(customer_id)
@@ -32,7 +47,7 @@ func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 		log.Fatal(err)
 	}
 
-	account := NewAccount(ID)
+	account := model.NewAccount(ID)
 	return WriteJSON(w, http.StatusOK, account)
 }
 
@@ -42,7 +57,7 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
-	account := NewAccount(createAccountReq.CustomerID)
+	account := model.NewAccount(createAccountReq.CustomerID)
 	if err := s.store.CreateAccount(account); err != nil {
 		return err
 	}

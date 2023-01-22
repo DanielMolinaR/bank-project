@@ -1,21 +1,6 @@
-package main
+package postgres_storage
 
-import (
-	"database/sql"
-
-	_ "github.com/lib/pq"
-)
-
-type Storage interface {
-	GetAccountByID(int) (*Account, error)
-	CreateAccount(*Account) error
-	DeleteAccount(int) error
-	UpdateAccount(*Account) error
-	GetCustomerByID(int) (*Customer, error)
-	CreateCustomer(*Customer) error
-	DeleteCustomer(int) error
-	UpdateCustomer(*Customer) error
-}
+import "database/sql"
 
 type PostgresStore struct {
 	db *sql.DB

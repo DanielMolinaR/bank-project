@@ -1,19 +1,20 @@
-package main
+package server
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
 
+	"github.com/DanielMolinaR/bank-project/storage"
 	"github.com/gorilla/mux"
 )
 
 type APIServer struct {
 	listenAddr string
-	store      Storage
+	store      storage.Storage
 }
 
-func NewApiServer(listenAdrr string, store Storage) *APIServer {
+func NewApiServer(listenAdrr string, store storage.Storage) *APIServer {
 	return &APIServer{
 		listenAddr: listenAdrr,
 		store:      store,
@@ -23,9 +24,13 @@ func NewApiServer(listenAdrr string, store Storage) *APIServer {
 func (s APIServer) Run() {
 	router := mux.NewRouter()
 
+	router.HandleFunc("/accounts", makeHTTPHandleFunc(s.handleGetAccounts))
+
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
 
 	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleAccount))
+
+	router.HandleFunc("/customers", makeHTTPHandleFunc(s.handleGetCustomers))
 
 	router.HandleFunc("/customer", makeHTTPHandleFunc(s.handleCustomer))
 

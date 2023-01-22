@@ -2,10 +2,13 @@ package main
 
 import (
 	"log"
+
+	"github.com/DanielMolinaR/bank-project/server"
+	"github.com/DanielMolinaR/bank-project/storage/postgres_storage"
 )
 
 func main() {
-	store, err := NewPostgresStore()
+	store, err := postgres_storage.NewPostgresStore()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -14,6 +17,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	server := NewApiServer(":3000", store)
+	server := server.NewApiServer(":3000", store)
 	server.Run()
 }
