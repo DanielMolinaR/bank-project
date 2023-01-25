@@ -1,13 +1,17 @@
 package postgres_storage
 
-import "database/sql"
+import (
+	"database/sql"
+	"fmt"
+	"os"
+)
 
 type PostgresStore struct {
 	db *sql.DB
 }
 
 func NewPostgresStore() (*PostgresStore, error) {
-	connStr := "user=postgres dbname=postgres password=postgres sslmode=disable"
+	connStr := fmt.Sprintf("user=%s dbname=%s password=%s sslmode=disable", os.Getenv("POSTGRES_USER"), os.Getenv("POSTGRES_DATABASE"), os.Getenv("POSTGRES_PASSWORD"))
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err

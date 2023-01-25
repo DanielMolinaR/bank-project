@@ -66,6 +66,14 @@ func (s *APIServer) handleCreateCustomer(w http.ResponseWriter, r *http.Request)
 		createCustomerReq.PhoneNumber,
 	)
 
+	tokenStr, err := createJWT(customer)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(tokenStr)
+
 	if err := s.store.CreateCustomer(customer); err != nil {
 		return err
 	}
