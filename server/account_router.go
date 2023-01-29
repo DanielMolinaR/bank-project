@@ -19,7 +19,7 @@ func (s *APIServer) handleAccountById(w http.ResponseWriter, r *http.Request) er
 	case "DELETE":
 		return s.handleDeleteAccount(w, r)
 	default:
-		return fmt.Errorf("method not allowed %s ", r.Method)
+		return WriteJSON(w, http.StatusBadRequest, apiError{Error: fmt.Sprintf("method not allowed %s ", r.Method)})
 	}
 }
 

@@ -15,6 +15,16 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginResponse struct {
+	Email string `json:"email"`
+	Token string `json:"token"`
+}
+
 type APIServer struct {
 	listenAddr string
 	store      storage.Storage
@@ -30,6 +40,7 @@ func NewApiServer(listenAdrr string, store storage.Storage) *APIServer {
 func (s APIServer) Run() {
 	router := mux.NewRouter()
 
+	router.HandleFunc("/login", makeHTTPHandleFunc(s.handleLogin))
 	router.HandleFunc("/customers", withJWTAuth(makeHTTPHandleFunc(s.handleGetCustomers), s.store))
 	router.HandleFunc("/customer", makeHTTPHandleFunc(s.handleCreateCustomer))
 	router.HandleFunc("/customer/{id}", makeHTTPHandleFunc(s.handleCustomerById))
@@ -44,6 +55,40 @@ func (s APIServer) Run() {
 	log.Println("JSON Api Server running on port: ", s.listenAddr)
 
 	http.ListenAndServe(s.listenAddr, router)
+}
+
+func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
+	if r.Method != "POST" {
+		return WriteJSON(w, http.StatusBadRequest, apiError{Error: fmt.Sprintf("Method not allowed %s", r.Method)})
+	}
+
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return WriteJSON(w, http.StatusBadRequest, apiError{Error: fmt.Sprintf("Incorrect payload %s", r.Body)})
+	}
+
+	customer, err := s.store.GetCustomerByEmail(req.Email)
+	if err != nil {
+		return WriteJSON(w, http.StatusBadRequest, apiError{Error: fmt.Sprintf("Method not allowed %s:", r.Method)})
+	}
+
+	isPwValid := customer.ValidPassword(req.Password)
+
+	if !isPwValid {
+		return WriteJSON(w, http.StatusBadRequest, apiError{Error: fmt.Sprintf("Not authenticated")})
+	}
+
+	token, err := createJWT(customer)
+	if err != nil {
+		return WriteJSON(w, http.StatusInternalServerError, apiError{Error: fmt.Sprintf("Something unexpected occurred")})
+	}
+
+	response := LoginResponse{
+		Email: req.Email,
+		Token: token,
+	}
+
+	return WriteJSON(w, http.StatusOK, response)
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {

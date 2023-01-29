@@ -14,6 +14,7 @@ type Storage interface {
 	UpdateAccount(*model.Account) error
 
 	GetCustomers() ([]*model.Customer, error)
+	GetCustomerByEmail(string) (*model.Customer, error)
 	GetCustomerByID(int) (*model.Customer, error)
 	CreateCustomer(*model.Customer) error
 	DeleteCustomer(int) error

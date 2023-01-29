@@ -13,6 +13,7 @@ type CreateCustomerRequest struct {
 	LastName    string `json:"last_name"`
 	Email       string `json:"email"`
 	PhoneNumber string `json:"phone_number"`
+	Password    string `json:"password"`
 }
 
 func (s *APIServer) handleCustomerById(w http.ResponseWriter, r *http.Request) error {
@@ -22,7 +23,7 @@ func (s *APIServer) handleCustomerById(w http.ResponseWriter, r *http.Request) e
 	case "DELETE":
 		return s.handleDeleteCustomer(w, r)
 	default:
-		return fmt.Errorf("method not allowed %s ", r.Method)
+		return WriteJSON(w, http.StatusBadRequest, apiError{Error: fmt.Sprintf("method not allowed %s ", r.Method)})
 	}
 }
 
@@ -59,20 +60,17 @@ func (s *APIServer) handleCreateCustomer(w http.ResponseWriter, r *http.Request)
 	}
 	defer r.Body.Close()
 
-	customer := model.NewCustomer(
+	customer, err := model.NewCustomer(
 		createCustomerReq.FirstName,
 		createCustomerReq.LastName,
 		createCustomerReq.Email,
 		createCustomerReq.PhoneNumber,
+		createCustomerReq.Password,
 	)
-
-	tokenStr, err := createJWT(customer)
 
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(tokenStr)
 
 	if err := s.store.CreateCustomer(customer); err != nil {
 		return err

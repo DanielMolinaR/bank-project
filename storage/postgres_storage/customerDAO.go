@@ -9,11 +9,13 @@ import (
 
 func (s *PostgresStore) CreateCustomerTable() error {
 	query := `CREATE TABLE IF NOT EXISTS customer (
-		id 				SERIAL PRIMARY KEY,
-		first_name   	VARCHAR(50),
-		last_name    	VARCHAR(50),
-		email      		VARCHAR(50),
-		phone_number 	VARCHAR(13)
+		id 					SERIAL PRIMARY KEY,
+		first_name   		VARCHAR(50),
+		last_name    		VARCHAR(50),
+		email      			VARCHAR(50),
+		phone_number 		VARCHAR(13),
+		encrypted_password 	VARCHAR(256),
+		CONSTRAINT email_unique UNIQUE (email)
 	)`
 
 	_, err := s.db.Exec(query)
@@ -58,19 +60,35 @@ func (s *PostgresStore) GetCustomerByID(id int) (*model.Customer, error) {
 	return nil, fmt.Errorf("customer %d not found", id)
 }
 
+func (s *PostgresStore) GetCustomerByEmail(email string) (*model.Customer, error) {
+	query := "SELECT * FROM customer WHERE email = $1"
+	rows, err := s.db.Query(query, email)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return ScanIntoCustomer(rows)
+	}
+
+	return nil, fmt.Errorf("customer with email %s not found", email)
+}
+
 func (s *PostgresStore) CreateCustomer(customer *model.Customer) error {
 	query := `
 	insert into customer 
-	(first_name, last_name, email, phone_number)
+	(first_name, last_name, email, phone_number, encrypted_password)
 	values 
-	($1, $2, $3, $4)`
+	($1, $2, $3, $4, $5)`
 
 	resp, err := s.db.Query(
 		query,
 		customer.FirstName,
 		customer.LastName,
 		customer.Email,
-		customer.PhoneNumber)
+		customer.PhoneNumber,
+		customer.EncryptedPassword)
 
 	if err != nil {
 		return err
@@ -100,7 +118,8 @@ func ScanIntoCustomer(rows *sql.Rows) (*model.Customer, error) {
 		&customer.FirstName,
 		&customer.LastName,
 		&customer.Email,
-		&customer.PhoneNumber)
+		&customer.PhoneNumber,
+		&customer.EncryptedPassword)
 
 	return customer, err
 }
